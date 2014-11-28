@@ -20,9 +20,9 @@ my %WriteMakefileArgs = (
   "LICENSE" => "artistic_2",
   "NAME" => "Mojolicious::Plugin::FormFieldsFromJSON",
   "PREREQ_PM" => {
-    "Mojolicious" => "5.42"
+    "Mojolicious" => "5.67"
   },
-  "VERSION" => "0.01",
+  "VERSION" => "0.02",
   "test" => {
     "TESTS" => "t/*.t t/fields/*.t t/validation/*.t"
   }
@@ -30,7 +30,7 @@ my %WriteMakefileArgs = (
 
 
 my %FallbackPrereqs = (
-  "Mojolicious" => "5.42"
+  "Mojolicious" => "5.67"
 );
 
 

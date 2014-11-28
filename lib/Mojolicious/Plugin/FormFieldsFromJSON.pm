@@ -3,10 +3,11 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Carp;
 use File::Spec;
+use List::Util qw(first);
 
 use Mojo::Asset::File;
 use Mojo::Collection;
@@ -158,7 +159,7 @@ sub register {
                 push @fields, $field;
             }
 
-            return @fields;
+            return join "\n\n", @fields;
         }
     );
 }
@@ -254,8 +255,54 @@ sub _get_select_values {
     if ( 'ARRAY' eq ref $data ) {
         @values = $self->_transform_array_values( $data, %params );
     }
+    elsif( 'HASH' eq ref $data ) {
+        @values = $self->_transform_hash_values( $c, $data, %params );
+    }
 
     return @values;
+}
+
+sub _transform_hash_values {
+    my ($self, $c, $data, %params) = @_;
+
+    my @values;
+    my $numeric = 1;
+    my $counter = 0;
+    my %mapping;
+
+    KEY:
+    for my $key ( keys %{ $data } ) {
+        if ( ref $data->{$key} ) {
+            my @group_values = $self->_get_select_values( $c, +{ data => $data->{$key} }, %params );
+            $values[$counter] = Mojo::Collection->new( $key => \@group_values );
+            $mapping{$key} = $counter;
+        }
+        else {
+            my %opts;
+
+            $opts{disabled} = 'disabled' if $params{disabled}->{$key};
+            $opts{selected} = 'selected' if $params{selected}->{$key};
+
+            $values[$counter] = [ $data->{$key} => $key, %opts ];
+            $mapping{$key}    = $counter;
+        }
+
+        $counter++;
+    }
+
+    if ( first{ $_ =~ m{[^0-9]} }keys %mapping ) {
+        $numeric = 0;
+    }
+
+    my @sorted_keys = $numeric ? 
+        sort { $a <=> $b }keys %mapping :
+        sort { $a cmp $b }keys %mapping;
+
+    my @indexes = @mapping{ @sorted_keys };
+
+    my @sorted_values = @values[ @indexes ];
+
+    return @sorted_values;
 }
 
 sub _transform_array_values {
@@ -304,7 +351,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 SYNOPSIS
 

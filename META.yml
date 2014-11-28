@@ -13,9 +13,9 @@ meta-spec:
   version: '1.4'
 name: Mojolicious-Plugin-FormFieldsFromJSON
 requires:
-  Mojolicious: '5.42'
+  Mojolicious: '5.67'
 resources:
   bugtracker: http://github.com/reneeb/Mojolicious-Plugin-FormFieldsFromJSON/issues
   homepage: http://github.com/reneeb/Mojolicious-Plugin-FormFieldsFromJSON
   repository: http://github.com/reneeb/Mojolicious-Plugin-FormFieldsFromJSON.git
-version: '0.01'
+version: '0.02'
