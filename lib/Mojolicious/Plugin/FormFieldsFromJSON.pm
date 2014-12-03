@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Carp;
 use File::Spec;
@@ -11,12 +11,15 @@ use List::Util qw(first);
 
 use Mojo::Asset::File;
 use Mojo::Collection;
+use Mojo::ByteStream;
 use Mojo::JSON qw(decode_json);
 
 our %request;
 
 sub register {
     my ($self, $app, $config) = @_;
+
+    $config //= {};
   
     my %configs;
     my $dir = $config->{dir} || '.';
@@ -26,6 +29,7 @@ sub register {
         checkbox => 1,
         select   => 1,
         radio    => 1,
+        hidden   => 1,
     );
 
     $app->helper(
@@ -134,12 +138,12 @@ sub register {
             return if $params{only_load}; 
             return '' if !$configs{$file};
   
-            my $config = $configs{$file};
+            my $field_config = $configs{$file};
 
             my @fields;
   
             FIELD:
-            for my $field ( @{ $config } ) {
+            for my $field ( @{ $field_config } ) {
                 if ( 'HASH' ne ref $field ) {
                     $app->log->error( 'Field definition must be an HASH - skipping field' );
                     next FIELD;
@@ -154,14 +158,39 @@ sub register {
 
                 local %request = %{ $c->tx->req->params->to_hash };
   
-                my $sub   = $self->can( '_' . $type );
-                my $field = $self->$sub( $c, $field, %params );
-                push @fields, $field;
+                my $sub        = $self->can( '_' . $type );
+                my $form_field = $self->$sub( $c, $field, %params );
+
+                $form_field = Mojo::ByteStream->new( $form_field );
+
+                if ( $config->{template} && $type ne 'hidden' ) {
+                    $form_field = Mojo::ByteStream->new(
+                        $c->render_to_string(
+                            inline => $config->{template},
+                            id     => $field->{id} // $field->{name} // $field->{label} // '',
+                            label  => $field->{label} // '',
+                            field  => $form_field,
+                        )
+                    );
+                }
+
+                push @fields, $form_field;
             }
 
             return join "\n\n", @fields;
         }
     );
+}
+
+sub _hidden {
+    my ($self, $c, $field) = @_;
+
+    my $name  = $field->{name} // $field->{label} // '';
+    my $value = $c->stash( $name ) // $request{$name} // $field->{data} // '';
+    my $id    = $field->{id} // $name;
+    my %attrs = %{ $field->{attributes} || {} };
+
+    return $c->hidden_field( $name, $value, id => $id, %attrs );
 }
 
 sub _text {
@@ -351,7 +380,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.02
+version 0.03
 
 =head1 SYNOPSIS
 

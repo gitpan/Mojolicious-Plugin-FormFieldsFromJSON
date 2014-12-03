@@ -9,7 +9,9 @@ README
 dist.ini
 lib/Mojolicious/Plugin/FormFieldsFromJSON.pm
 t/02_two_fields.t
+t/03_template.t
 t/basic.t
+t/conf/template.json
 t/conf/two_fields.json
 t/fields/01_textfield.t
 t/fields/02_textfield_default.t
@@ -21,6 +23,9 @@ t/fields/07_select_preselect_multiple.t
 t/fields/08_select_disabled_value.t
 t/fields/09_select_hash.t
 t/fields/10_select_optgroup.t
+t/fields/11_select_umlaut.t
+t/fields/12_hidden.t
+t/fields/conf/hidden.json
 t/fields/conf/select.json
 t/fields/conf/select_disabled_value.json
 t/fields/conf/select_hash.json
@@ -28,6 +33,7 @@ t/fields/conf/select_multiple.json
 t/fields/conf/select_optgroup.json
 t/fields/conf/select_preselect.json
 t/fields/conf/select_preselect_multiple.json
+t/fields/conf/select_umlaut.json
 t/fields/conf/textfield.json
 t/fields/conf/textfield_attributes.json
 t/fields/conf/textfield_default.json
