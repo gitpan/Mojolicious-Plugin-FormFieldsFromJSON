@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Carp;
 use File::Spec;
@@ -163,10 +163,11 @@ sub register {
 
                 $form_field = Mojo::ByteStream->new( $form_field );
 
-                if ( $config->{template} && $type ne 'hidden' ) {
+                my $template = $field->{template} // $config->{templates}->{$type} // $config->{template};
+                if ( $template && $type ne 'hidden' ) {
                     $form_field = Mojo::ByteStream->new(
                         $c->render_to_string(
-                            inline => $config->{template},
+                            inline => $template,
                             id     => $field->{id} // $field->{name} // $field->{label} // '',
                             label  => $field->{label} // '',
                             field  => $form_field,
@@ -380,7 +381,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.03
+version 0.04
 
 =head1 SYNOPSIS
 
@@ -393,6 +394,44 @@ version 0.03
 =head1 DESCRIPTION
 
 L<Mojolicious::Plugin::FormFieldsFromJSON> is a L<Mojolicious> plugin.
+
+=head1 CONFIGURATION
+
+You can configure some settings for the plugin:
+
+=over 4
+
+=item * dir
+
+The directory where the json files for form field configuration are located
+
+  $self->plugin( 'FormFieldsFromJSON' => {
+    dir => '/home/mojo/fields',
+  });
+
+=item * template
+
+With template you can define a template for the form fields.
+
+  $self->plugin( 'FormFieldsFromJSON' => {
+    template => '<label for="<%= $id %>"><%= $label %>:</label><div><%= $field %></div>',
+  });
+
+See L<Templates|Mojolicious::Plugin::FormFieldsFromJSON/Templates>.
+
+=item * templates
+
+With template you can define type specific templates for the form fields.
+
+  plugin 'FormFieldsFromJSON' => {
+    templates => {
+      text => '<%= $label %>: <%= $field %>',
+    },
+  };
+
+See L<Templates|Mojolicious::Plugin::FormFieldsFromJSON/Templates>.
+
+=back
 
 =head1 HELPER
 
@@ -426,8 +465,6 @@ Those fields have the following definition items in common:
 
 =item * data
 
-=item * data_function
-
 =item * attributes
 
 Attributes of the field like "class"
@@ -440,9 +477,60 @@ The following sections should give you an idea what's possible with this plugin
 
 =head2 text
 
+With type I<text> you get a simple text input field.
+
 =head3 A simple text field
 
+This is the configuration for a simple text field:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "name" : "name"
+    }
+ ]
+
+And the generated form field looks like
+
+ <input id="name" name="name" type="text" value="" />
+
 =head3 Set CSS classes
+
+If you want to set a CSS class, you can use the C<attributes> field:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "name" : "name",
+        "attributes" : {
+            "class" : "W75px"
+        }
+    }
+ ]
+
+And the generated form field looks like
+
+ <input class="W75px" id="name" name="name" type="text" value="" />
+
+=head3 Text field with predefined value
+
+Sometimes, you want to predefine a value shown in the text field. Then you can
+use the C<data> field:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "name" : "name",
+        "data" : "default value"
+    }
+ ]
+
+This will generate this input field:
+
+  <input id="name" name="name" type="text" value="default value" />
 
 =head2 select
 
@@ -644,6 +732,104 @@ This creates the following select field:
 =head2 radio
 
 =head2 checkbox
+
+=head1 Templates
+
+Especially when you work with frameworks like Bootstrap, you want to 
+your form fields to look nice. For that the form fields are within
+C<div>s or other HTML elements.
+
+To make your life easier, you can define templates. Either a "global"
+one, a type specific template or a template for one field.
+
+For hidden fields, no template is applied!
+
+=head2 A global template
+
+When you load the plugin this way
+
+  $self->plugin( 'FormFieldsFromJSON' => {
+    template => '<label for="<%= $id %>"><%= $label %>:</label><div><%= $field %></div>',
+  });
+
+and have a configuration that looks like
+
+You get
+
+  <label for="name">Name:</label><div><input id="name" name="name" type="text" value="" /></div>
+  
+   
+  <label for="password">Password:</label><div><input id="password" name="password" type="text" value="" /></div>
+
+=head2 A type specific template
+
+When you want to use a different template for select fields, you can use a
+different template for that kind of fields:
+
+  plugin 'FormFieldsFromJSON' => {
+    dir       => File::Spec->catdir( dirname( __FILE__ ) || '.', 'conf' ),
+    template  => '<label for="<%= $id %>"><%= $label %>:</label><div><%= $field %></div>',
+    templates => {
+      select => '<%= $label %>: <%= $field %>',
+    },
+  };
+
+With a configuration file like 
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "name" : "name"
+    }
+    {
+        "label" : "Country",
+        "type" : "select",
+        "name" : "country",
+        "data" : [ "au" ]
+    }
+ ]
+
+You get 
+
+  <label for="name">Name:</label><div><input id="name" name="name" type="text" value="" /></div>
+  
+   
+  Country: <select id="country" name="country"><option value="au">au</option></select>
+
+=head2 A field specific template
+
+When you want to use a different template for a specific field, you can use the
+C<template> field in the configuration file.
+
+  plugin 'FormFieldsFromJSON' => {
+    dir       => File::Spec->catdir( dirname( __FILE__ ) || '.', 'conf' ),
+    template  => '<label for="<%= $id %>"><%= $label %>:</label><div><%= $field %></div>',
+  };
+
+With a configuration file like 
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "name" : "name"
+    }
+    {
+        "label" : "Country",
+        "type" : "select",
+        "name" : "country",
+        "data" : [ "au" ],
+        "template" : "<%= $label %>: <%= $field %>"
+    }
+ ]
+
+You get 
+
+  <label for="name">Name:</label><div><input id="name" name="name" type="text" value="" /></div>
+  
+   
+  Country: <select id="country" name="country"><option value="au">au</option></select>
 
 =head1 SEE ALSO
 

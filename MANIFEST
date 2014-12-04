@@ -10,8 +10,16 @@ dist.ini
 lib/Mojolicious/Plugin/FormFieldsFromJSON.pm
 t/02_two_fields.t
 t/03_template.t
+t/04_fieldtype_template.t
+t/05_template_twofields.t
+t/06_fieldtype_template_select.t
+t/07_template_configured_in_json.t
 t/basic.t
+t/conf/fieldtype_template.json
+t/conf/fieldtype_template_select.json
 t/conf/template.json
+t/conf/template_configured_in_json.json
+t/conf/template_twofields.json
 t/conf/two_fields.json
 t/fields/01_textfield.t
 t/fields/02_textfield_default.t
@@ -25,6 +33,8 @@ t/fields/09_select_hash.t
 t/fields/10_select_optgroup.t
 t/fields/11_select_umlaut.t
 t/fields/12_hidden.t
+t/fields/13_textfield_with_attributes.t
+t/fields/14_select_with_attributes.t
 t/fields/conf/hidden.json
 t/fields/conf/select.json
 t/fields/conf/select_disabled_value.json
@@ -34,9 +44,11 @@ t/fields/conf/select_optgroup.json
 t/fields/conf/select_preselect.json
 t/fields/conf/select_preselect_multiple.json
 t/fields/conf/select_umlaut.json
+t/fields/conf/select_with_attributes.json
 t/fields/conf/textfield.json
 t/fields/conf/textfield_attributes.json
 t/fields/conf/textfield_default.json
+t/fields/conf/textfield_with_attributes.json
 t/validation/01_textfield.t
 t/validation/02_textfield_required.t
 t/validation/conf/textfield.json
