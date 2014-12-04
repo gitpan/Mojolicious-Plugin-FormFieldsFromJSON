@@ -3,10 +3,12 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use Carp;
+use File::Basename;
 use File::Spec;
+use IO::Dir;
 use List::Util qw(first);
 
 use Mojo::Asset::File;
@@ -30,6 +32,47 @@ sub register {
         select   => 1,
         radio    => 1,
         hidden   => 1,
+        textarea => 1,
+        password => 1,
+    );
+
+    my %configfiles;
+    $app->helper(
+        forms => sub {
+            if( %configfiles ) {
+                return sort keys %configfiles;
+            }
+
+            my $dir = IO::Dir->new( $dir );
+
+            FILE:
+            while ( my $file = $dir->read ) {
+                next FILE if $file !~ m{\.json\z};
+                my $filename = basename $file;
+                $filename    =~ s{\.json\z}{};
+                $configfiles{$filename} = 1;
+            }
+
+            return sort keys %configfiles;
+        }
+    );
+
+    $app->helper(
+        fields => sub {
+            my ($c, $file) = @_;
+
+            if ( !$configs{$file} ) {
+                $c->form_fields( $file, only_load => 1 );
+            }
+
+            my %fields;
+            for my $field ( @{ $configs{$file} } ) {
+                my $name = $field->{label} // $field->{name} // '';
+                $fields{$name} = 1;
+            }
+
+            return sort keys %fields;
+        }
     );
 
     $app->helper(
@@ -362,9 +405,92 @@ sub _transform_array_values {
 }
 
 sub _radio {
+    my ($self, $c, $field, %params) = @_;
+
+    my $name  = $field->{name} // $field->{label} // '';
+    my $id    = $field->{id} // $name;
+    my %attrs = %{ $field->{attributes} || {} };
+
+    my $data   = $params{data} // $field->{data} // [];
+    my @values = ref $data ? @{ $data } : ($data);
+
+    my $field_params = $params{$name} || {},
+
+    my %select_params = (
+       disabled => $self->_get_highlighted_values( $field, 'disabled' ),
+       selected => $self->_get_highlighted_values( $field, 'selected' ),
+    );
+
+    my $stash_values = $c->every_param( $name );
+    my $reset;
+    if ( @{ $stash_values || [] } ) {
+        $select_params{selected} = $self->_get_highlighted_values(
+            +{ selected => $stash_values },
+            'selected',
+        );
+        $c->param( $name, '' );
+        $reset = 1;
+    }
+
+    for my $key ( qw/disabled selected/ ) {
+        my $hashref = $self->_get_highlighted_values( $field_params, $key );
+        if ( keys %{ $hashref } ) {
+            $select_params{$key} = $hashref;
+        }
+    }
+
+    my $radiobuttons = '';
+    for my $radio_value ( @values ) {
+        my %value_attributes;
+
+        if ( $select_params{disabled}->{$radio_value} ) {
+            $value_attributes{disabled} = 'disabled';
+        }
+
+        if ( $select_params{selected}->{$radio_value} ) {
+            $value_attributes{checked} = 'checked';
+        }
+
+        $radiobuttons .= $c->radio_button(
+            $name => $radio_value,
+            id => $id,
+            %attrs,
+            %value_attributes,
+        ) . "\n";
+    }
+
+    if ( $reset ) {
+        my $single = scalar @{ $stash_values };
+        my $param  = $single == 1 ? $stash_values->[0] : $stash_values;
+        $c->param( $name, $param );
+    }
+
+    return $radiobuttons;
 }
 
 sub _checkbox {
+}
+
+sub _textarea {
+    my ($self, $c, $field) = @_;
+
+    my $name  = $field->{name} // $field->{label} // '';
+    my $value = $c->stash( $name ) // $request{$name} // $field->{data} // '';
+    my $id    = $field->{id} // $name;
+    my %attrs = %{ $field->{attributes} || {} };
+
+    return $c->text_area( $name, $value, id => $id, %attrs );
+}
+
+sub _password {
+    my ($self, $c, $field) = @_;
+
+    my $name  = $field->{name} // $field->{label} // '';
+    my $value = $c->stash( $name ) // $request{$name} // $field->{data} // '';
+    my $id    = $field->{id} // $name;
+    my %attrs = %{ $field->{attributes} || {} };
+
+    return $c->password_field( $name, value => $value, id => $id, %attrs );
 }
 
 1;
@@ -381,7 +507,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.04
+version 0.05
 
 =head1 SYNOPSIS
 
@@ -439,6 +565,12 @@ See L<Templates|Mojolicious::Plugin::FormFieldsFromJSON/Templates>.
 
   $controller->form_fields( 'formname' );
 
+=head2 validate_form_fields
+
+=head2 forms
+
+=head2 fields
+
 =head1 FIELD DEFINITIONS
 
 This plugin supports several form fields:
@@ -452,6 +584,12 @@ This plugin supports several form fields:
 =item * radio
 
 =item * select
+
+=item * textarea
+
+=item * password
+
+=item * hidden
 
 =back
 
@@ -731,7 +869,130 @@ This creates the following select field:
 
 =head2 radio
 
+For radiobuttons, you can use two ways: You can either configure
+form fields for each value or you can define a list of values in
+the C<data> field. With the first way, you can create radiobuttons
+where the template (if any defined) is applied to each radiobutton.
+With the second way, the radiobuttons are handled as one single 
+field in the template.
+
+=head3 A single radiobutton
+
+Given the configuration
+
+ [
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "data" : "internal"
+    }
+ ]
+
+You get
+
+=head3 Two radiobuttons configured seperately
+
+With the configuration
+
+ [
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "data" : "internal"
+    },
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "data" : "external"
+    }
+ ]
+
+You get
+
+=head3 Two radiobuttons as a group
+
+And with
+
+ [
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "data" : ["internal", "external" ]
+    }
+ ]
+
+You get
+
+=head3 Two radiobuttons configured seperately - with template
+
+=head3 Two radiobuttons as a group - with template
+
 =head2 checkbox
+
+=head2 textarea
+
+This type is very similar to L<text|Mojolicious::Plugin::FormFieldsFromJSON/text>.
+
+=head3 A simple textarea
+
+This is the configuration for a simple text field:
+
+ [
+    {
+        "type" : "textarea",
+        "name" : "message",
+        "data" : "Current message"
+    }
+ ]
+
+And the generated form field looks like
+
+  <textarea id="message" name="message">Current message</textarea>
+
+=head3 A textarea with defined number of columns and rows
+
+This is the configuration for a simple text field:
+
+ [
+    {
+        "type" : "textarea",
+        "name" : "message",
+        "data" : "Current message",
+        "attributes" : {
+            "cols" : 80,
+            "rows" : 10
+        }
+    }
+ ]
+
+And the generated textarea looks like
+
+  <textarea cols="80" id="message" name="message" rows="10">Current message</textarea>
+
+=head2 password
+
+This type is very similar to L<text|Mojolicious::Plugin::FormFieldsFromJSON/text>.
+You can use the very same settings as for text fields, so we show only a simple
+example here:
+
+=head3 A simple password field
+
+This is the configuration for a simple text field:
+
+ [
+    {
+        "type" : "password",
+        "name" : "user_password"
+    }
+ ]
+
+And the generated form field looks like
+
+ <input id="user_password" name="password" type="password" value="" />
 
 =head1 Templates
 
