@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use Carp;
 use File::Basename;
@@ -507,7 +507,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.06
+version 0.07
 
 =head1 SYNOPSIS
 
@@ -929,7 +929,74 @@ You get
 
 =head3 Two radiobuttons configured seperately - with template
 
+Define template:
+
+  plugin 'FormFieldsFromJSON' => {
+    dir      => './conf',
+    template => '<%= $label %>: <%= $form %>';
+  };
+
+Config:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "data" : "internal"
+    },
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "data" : "external"
+    }
+ ]
+
+Fields:
+
+  Name: <input id="type" name="type" type="radio" value="internal" />
+  
+  
+  
+  Name: <input id="type" name="type" type="radio" value="external" />
+
 =head3 Two radiobuttons as a group - with template
+
+Same template definition as above, but given this field config:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "data" : ["internal", "external" ]
+    }
+ ]
+
+You get this:
+
+  Name: <input id="type" name="type" type="radio" value="internal" />
+  <input id="type" name="type" type="radio" value="external" />
+
+=head3 Two radiobuttons - one checked
+
+Config:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "data" : ["internal", "external" ],
+        "selected" : ["internal"]
+    }
+ ]
+
+Field:
+
+  <input checked="checked" id="type" name="type" type="radio" value="internal" />
+  <input id="type" name="type" type="radio" value="external" />
 
 =head2 checkbox
 
@@ -1091,6 +1158,26 @@ You get
   
    
   Country: <select id="country" name="country"><option value="au">au</option></select>
+
+=head2 Template variables
+
+You get three template variables for free:
+
+=over 4
+
+=item * $label
+
+If a label is defined in the field configuration
+
+=item * $field
+
+The form field (HTML)
+
+=item * $id
+
+The id for the field. If no id is defined, the name of the field is set.
+
+=back
 
 =head1 SEE ALSO
 

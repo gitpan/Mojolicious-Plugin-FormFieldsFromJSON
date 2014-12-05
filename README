@@ -1,7 +1,7 @@
 
 
 This archive contains the distribution Mojolicious-Plugin-FormFieldsFromJSON,
-version 0.06:
+version 0.07:
 
   create form fields based on a definition in a JSON file
 
