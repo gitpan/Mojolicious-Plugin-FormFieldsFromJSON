@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use Carp;
 use File::Basename;
@@ -469,6 +469,67 @@ sub _radio {
 }
 
 sub _checkbox {
+    my ($self, $c, $field, %params) = @_;
+
+    my $name  = $field->{name} // $field->{label} // '';
+    my $id    = $field->{id} // $name;
+    my %attrs = %{ $field->{attributes} || {} };
+
+    my $data   = $params{data} // $field->{data} // [];
+    my @values = ref $data ? @{ $data } : ($data);
+
+    my $field_params = $params{$name} || {},
+
+    my %select_params = (
+       disabled => $self->_get_highlighted_values( $field, 'disabled' ),
+       selected => $self->_get_highlighted_values( $field, 'selected' ),
+    );
+
+    my $stash_values = $c->every_param( $name );
+    my $reset;
+    if ( @{ $stash_values || [] } ) {
+        $select_params{selected} = $self->_get_highlighted_values(
+            +{ selected => $stash_values },
+            'selected',
+        );
+        $c->param( $name, '' );
+        $reset = 1;
+    }
+
+    for my $key ( qw/disabled selected/ ) {
+        my $hashref = $self->_get_highlighted_values( $field_params, $key );
+        if ( keys %{ $hashref } ) {
+            $select_params{$key} = $hashref;
+        }
+    }
+
+    my $checkboxes = '';
+    for my $checkbox_value ( @values ) {
+        my %value_attributes;
+
+        if ( $select_params{disabled}->{$checkbox_value} ) {
+            $value_attributes{disabled} = 'disabled';
+        }
+
+        if ( $select_params{selected}->{$checkbox_value} ) {
+            $value_attributes{checked} = 'checked';
+        }
+
+        $checkboxes .= $c->check_box(
+            $name => $checkbox_value,
+            id => $id,
+            %attrs,
+            %value_attributes,
+        ) . "\n";
+    }
+
+    if ( $reset ) {
+        my $single = scalar @{ $stash_values };
+        my $param  = $single == 1 ? $stash_values->[0] : $stash_values;
+        $c->param( $name, $param );
+    }
+
+    return $checkboxes;
 }
 
 sub _textarea {
@@ -507,7 +568,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.07
+version 0.08
 
 =head1 SYNOPSIS
 
@@ -563,13 +624,67 @@ See L<Templates|Mojolicious::Plugin::FormFieldsFromJSON/Templates>.
 
 =head2 form_fields
 
+C<form_fields> returns a string with all configured fields "translated" to HTML.
+
   $controller->form_fields( 'formname' );
+
+Given this configuration:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "name" : "name"
+    },
+    {
+        "label" : "City",
+        "type" : "text",
+        "name" : "city"
+    }
+ ]
+
+You'll get
+
+ <input id="name" name="name" type="text" value="" />
+ <input id="city" name="city" type="text" value="" />
 
 =head2 validate_form_fields
 
 =head2 forms
 
+This method returns a list of forms. That means the filenames of all .json files
+in the configured directory.
+
+  my @forms = $controller->forms;
+
+The filenames are returned without the file suffix .json.
+
 =head2 fields
+
+C<fields()> returns a list of fields (label or name).
+
+  my @fieldnames = $controller->fields('formname');
+
+If your configuration looks like
+
+ [
+   {
+     "label" : "Email",
+     "name"  : "email",
+     "type"  : "text"
+   },
+   {
+     "name"  : "password",
+     "type"  : "password"
+   }
+ ]
+
+You get
+
+  (
+    Email,
+    password
+  )
 
 =head1 FIELD DEFINITIONS
 

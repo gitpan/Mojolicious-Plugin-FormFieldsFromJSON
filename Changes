@@ -1,6 +1,15 @@
 Release history for Mojolicious::Plugin::FormFieldsFromJSON
 ===========================================================
 
+0.08 2014-12-06
+
+  [IMPROVEMENTS]
+  * add support for checkboxes
+
+  [DOCUMENTATION]
+  * document forms()
+  * document fields( $form )
+
 0.07 2014-12-05
 
   [TESTS]
