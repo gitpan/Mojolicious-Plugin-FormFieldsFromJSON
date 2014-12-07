@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use Carp;
 use File::Basename;
@@ -568,7 +568,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.08
+version 0.09
 
 =head1 SYNOPSIS
 
@@ -649,6 +649,11 @@ You'll get
  <input id="city" name="city" type="text" value="" />
 
 =head2 validate_form_fields
+
+This helper validates the input. It uses the L<Mojolicious::Validator::Validation> and it
+validates all fields defined in the configuration file.
+
+For more details see L<Validation|Mojolicious::Plugin::FormFieldsFromJSON/Validation>.
 
 =head2 forms
 
@@ -1115,6 +1120,135 @@ Field:
 
 =head2 checkbox
 
+For checkboxes, you can use two ways: You can either configure
+form fields for each value or you can define a list of values in
+the C<data> field. With the first way, you can create checkboxes
+where the template (if any defined) is applied to each checkbox.
+With the second way, the checkboxes are handled as one single 
+field in the template.
+
+=head3 A single checkbox
+
+Given the configuration
+
+ [
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "data" : "internal"
+    }
+ ]
+
+You get
+
+=head3 Two checkboxes configured seperately
+
+With the configuration
+
+ [
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "data" : "internal"
+    },
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "data" : "external"
+    }
+ ]
+
+You get
+
+=head3 Two checkboxes as a group
+
+And with
+
+ [
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "data" : ["internal", "external" ]
+    }
+ ]
+
+You get
+
+=head3 Two checkboxes configured seperately - with template
+
+Define template:
+
+  plugin 'FormFieldsFromJSON' => {
+    dir      => './conf',
+    template => '<%= $label %>: <%= $form %>';
+  };
+
+Config:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "data" : "internal"
+    },
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "data" : "external"
+    }
+ ]
+
+Fields:
+
+  Name: <input id="type" name="type" type="checkbox" value="internal" />
+  
+  
+  
+  Name: <input id="type" name="type" type="checkbox" value="external" />
+
+=head3 Two checkboxes as a group - with template
+
+Same template definition as above, but given this field config:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "data" : ["internal", "external" ]
+    }
+ ]
+
+You get this:
+
+  Name: <input id="type" name="type" type="checkbox" value="internal" />
+  <input id="type" name="type" type="checkbox" value="external" />
+
+=head3 Two checkboxes - one checked
+
+Config:
+
+ [
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "data" : ["internal", "external" ],
+        "selected" : ["internal"]
+    }
+ ]
+
+Field:
+
+  <input checked="checked" id="type" name="type" type="checkbox" value="internal" />
+  <input id="type" name="type" type="checkbox" value="external" />
+
 =head2 textarea
 
 This type is very similar to L<text|Mojolicious::Plugin::FormFieldsFromJSON/text>.
@@ -1293,6 +1427,78 @@ The form field (HTML)
 The id for the field. If no id is defined, the name of the field is set.
 
 =back
+
+=head1 Validation
+
+You can define some validation rules in your config file. And when you call C<validate_form_fields>, the
+fields defined in the configuration file are validated.
+
+L<Mojolicious::Validator::Validation> is shipped with some basic validation checks:
+
+=over 4
+
+=item * in
+
+=item * size
+
+=item * like
+
+=item * equal_to
+
+=back
+
+There is L<Mojolicious::Plugin::AdditionalValidationChecks> with some more basic checks. And you can also
+define your own checks.
+
+The I<validation> field is a hashref where the name of the check is the key
+and the parameters for the check can be defined in the value:
+
+  "validation" : {
+      "size" : [ 2, 5 ]
+  },
+
+This will call C<< ->size(2,5) >>. If you want to pass a single parameter,
+you can set a scalar:
+
+  "validation" : {
+      "equal_to" : "foo"
+  },
+
+=head2 Check a string for its length
+
+This is a simple check for the length of a string
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "validation" : {
+            "size" : [ 2, 5 ]
+        },
+        "name" : "name"
+    }
+ ]
+
+Then you can call C<validate_form_fields>:
+
+  my %errors = $c->validate_form_fields( $config_name );
+
+In the returned hash, you get the fieldnames as keys where a validation check fails.
+
+=head2 A mandatory string
+
+If you have mandatory fields, you can define them as required
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "validation" : {
+            "required" : "name"
+        },
+        "name" : "name"
+    }
+ ]
 
 =head1 SEE ALSO
 
