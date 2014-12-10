@@ -16,9 +16,13 @@ t/06_fieldtype_template_select.t
 t/07_template_configured_in_json.t
 t/08_forms.t
 t/09_fields.t
+t/10_global_attributes.t
+t/11_global_attributes_plus_field_attributes.t
 t/basic.t
 t/conf/fieldtype_template.json
 t/conf/fieldtype_template_select.json
+t/conf/global_attributes.json
+t/conf/global_attributes_plus_field_attributes.json
 t/conf/template.json
 t/conf/template_configured_in_json.json
 t/conf/template_twofields.json

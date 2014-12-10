@@ -18,4 +18,4 @@ resources:
   bugtracker: http://github.com/reneeb/Mojolicious-Plugin-FormFieldsFromJSON/issues
   homepage: http://github.com/reneeb/Mojolicious-Plugin-FormFieldsFromJSON
   repository: http://github.com/reneeb/Mojolicious-Plugin-FormFieldsFromJSON.git
-version: '0.09'
+version: '0.10'
