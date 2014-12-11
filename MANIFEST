@@ -19,7 +19,9 @@ t/09_fields.t
 t/10_global_attributes.t
 t/11_global_attributes_plus_field_attributes.t
 t/12_global_attributes_multirequest.t
+t/13_alias.t
 t/basic.t
+t/conf/alias.json
 t/conf/fieldtype_template.json
 t/conf/fieldtype_template_select.json
 t/conf/global_attributes.json

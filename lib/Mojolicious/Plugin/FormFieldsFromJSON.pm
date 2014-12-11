@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 use Carp;
 use File::Basename;
@@ -192,7 +192,12 @@ sub register {
                     next FIELD;
                 }
   
-                my $type = lc $field->{type};
+                my $type      = lc $field->{type};
+                my $orig_type = $type;
+
+                if ( $config->{alias} && $config->{alias}->{$type} ) {
+                    $type = $config->{alias}->{$type};
+                }
   
                 if ( !$valid_types{$type} ) {
                     $app->log->warn( "Invalid field type $type - falling back to 'text'" );
@@ -219,7 +224,7 @@ sub register {
 
                 $form_field = Mojo::ByteStream->new( $form_field );
 
-                my $template = $field->{template} // $config->{templates}->{$type} // $config->{template};
+                my $template = $field->{template} // $config->{templates}->{$orig_type} // $config->{template};
                 if ( $template && $type ne 'hidden' ) {
                     $form_field = Mojo::ByteStream->new(
                         $c->render_to_string(
@@ -581,7 +586,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.11
+version 0.12
 
 =head1 SYNOPSIS
 
@@ -630,6 +635,75 @@ With template you can define type specific templates for the form fields.
   };
 
 See L<Templates|Mojolicious::Plugin::FormFieldsFromJSON/Templates>.
+
+=item * global_attributes
+
+With I<global_attributes>, you can define attributes that should be set for every field 
+(except hidden fields)
+
+  plugin 'FormFieldsFromJSON' => {
+    global_attributes => {
+      class => 'important-field',
+    },
+  };
+
+So with this configuration
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "name" : "name"
+    },
+    {
+        "label" : "Background",
+        "type" : "text",
+        "name" : "background"
+    }
+ ]
+
+You get
+
+     <input class="important-field" id="name" name="name" type="text" value="" />
+     <input class="important-field" id="background" name="background" type="text" value="" />
+
+=item * alias
+
+Using aliases can help you a lot. Given you want to have several forms where the user can
+define a color (e.g. by using I<bootstrap-colorpicker>), you don't want to define the special
+templates in each form. Instead you can define those fiels as I<type> "color" and use an alias:
+
+  plugin 'FormFieldsFromJSON' => {
+    template  => '<%= $label %>: <%= $field %>',
+    templates => {
+      color => '<%= $label %> (color): <%= $field %>',
+    },
+    alias => {
+      color => 'text',
+    },
+  };
+
+The alias defines that "color" fields are "text" fields.
+
+So with this configuration
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "name" : "name"
+    },
+    {
+        "label" : "Background",
+        "type" : "color",
+        "name" : "background"
+    }
+ ]
+
+You get
+
+     <label for="name">Name:</label><div><input id="name" name="name" type="text" value="" /></div>
+     <label for="background">Background (color):</label><div><input id="background" name="background" type="text" value="" /></div>
 
 =back
 
