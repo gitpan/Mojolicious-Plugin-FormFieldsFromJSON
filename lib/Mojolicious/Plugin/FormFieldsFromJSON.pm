@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 use Carp;
 use File::Basename;
@@ -90,7 +90,8 @@ sub register {
             my $config = $configs{$file};
 
             my $validation = $c->validation;
-            $validation->input( $c->tx->req->params->to_hash );
+            my $params     = $c->tx->req->params->to_hash;
+            $validation->input( $params );
 
             my %errors;
   
@@ -110,43 +111,60 @@ sub register {
                     next FIELD;
                 }
 
-                my $name = $field->{name} // $field->{label} // '';
+                my $name         = $field->{name} // $field->{label} // '';
+                my $global_error = 1;
 
                 if ( $field->{validation}->{required} ) {
                     $validation->required( $name );
+
+                    my $value  = $field->{validation}->{required};
+                    if ( ref $value && 'HASH' eq ref $value ) {
+                        $global_error = $value->{msg} // 1;
+                    }
                 }
                 else {
                     $validation->optional( $name );
                 }
 
                 RULE:
-                for my $rule ( keys %{ $field->{validation} } ) {
-                    my @params = ( $field->{validation}->{$rule} );
+                for my $rule ( sort keys %{ $field->{validation} } ) {
+                    last RULE if !defined $params->{$name};
+
+                    next RULE if $rule eq 'required';
+
+                    my $value  = $field->{validation}->{$rule};
+                    my $ref    = ref $value;
                     my $method = $rule;
+                    my $error  = 1;
 
-                    if ( ref $field->{validation}->{$rule} ) {
-                        @params = @{ $field->{validation}->{$rule} };
+                    my @params;
+
+                    if ( !$ref ) {
+                        @params = $value;
                     }
-
-                    if ( $method eq 'required' ) {
-                        $validation->required( $name );
-                        next RULE;
+                    elsif ( $ref eq 'ARRAY' ) {
+                        @params = @{ $value };
+                    }
+                    elsif ( $ref eq 'HASH' ) {
+                        @params = ref $value->{args} ? @{ $value->{args} } : $value->{args};
+                        $error  = $value->{msg} // 1;
                     }
 
                     eval{
                         $validation->check( $method, @params );
+                        1;
                     } or do {
                         $app->log->error( "Validating $name with rule $method failed: $@" );
                     };
 
-                    if ( !$validation->is_valid( $name ) ) {
-                        $errors{$name} = 1;
+                    if ( $validation->has_error( $name ) ) {
+                        $errors{$name} = $error;
                         last RULE;
                     }
                 }
 
-                if ( !$validation->is_valid( $name ) ) {
-                    $errors{$name} = 1;
+                if ( $validation->has_error( $name ) && !defined $errors{$name} ) {
+                    $errors{$name} = $global_error;
                 }
             }
 
@@ -475,6 +493,10 @@ sub _radio {
             %attrs,
             %value_attributes,
         ) . "\n";
+
+        if ( defined $field->{after_element} ) {
+            $radiobuttons .= $field->{after_element};
+        }
     }
 
     if ( $reset ) {
@@ -539,6 +561,10 @@ sub _checkbox {
             %attrs,
             %value_attributes,
         ) . "\n";
+
+        if ( defined $field->{after_element} ) {
+            $checkboxes .= $field->{after_element};
+        }
     }
 
     if ( $reset ) {
@@ -586,7 +612,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.12
+version 0.13
 
 =head1 SYNOPSIS
 
@@ -1205,6 +1231,27 @@ Field:
   <input checked="checked" id="type" name="type" type="radio" value="internal" />
   <input id="type" name="type" type="radio" value="external" />
 
+=head3 Radiobuttons with HTML after every element
+
+When you want to add some HTML code after every element - e.g. a C<< <br /> >> -
+you can use I<after_element>
+
+ [
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "after_element" : "<br />",
+        "data" : ["internal", "external" ]
+    }
+ ]
+
+Fields:
+
+  <input id="type" name="type" type="radio" value="internal" />
+  <br /><input id="type" name="type" type="radio" value="external" />
+  <br />
+
 =head2 checkbox
 
 For checkboxes, you can use two ways: You can either configure
@@ -1335,6 +1382,28 @@ Field:
 
   <input checked="checked" id="type" name="type" type="checkbox" value="internal" />
   <input id="type" name="type" type="checkbox" value="external" />
+
+=head3 Checkboxes with HTML after every element
+
+When you want to add some HTML code after every element - e.g. a C<< <br /> >> -
+you can use I<after_element>
+
+ [
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "after_element" : "<br />",
+        "data" : ["internal", "external", "unknown" ]
+    }
+ ]
+
+Fields:
+
+  <input id="type" name="type" type="checkbox" value="internal" />
+  <br /><input id="type" name="type" type="checkbox" value="external" />
+  <br /><input id="type" name="type" type="checkbox" value="unknown" />
+  <br />
 
 =head2 textarea
 
@@ -1551,6 +1620,8 @@ you can set a scalar:
       "equal_to" : "foo"
   },
 
+Validation checks are done in asciibetical order.
+
 =head2 Check a string for its length
 
 This is a simple check for the length of a string
@@ -1586,6 +1657,32 @@ If you have mandatory fields, you can define them as required
         "name" : "name"
     }
  ]
+
+=head2 Provide your own error message
+
+With the simple configuration seen above, the C<%error> hash contains the value "1" for
+each invalid field. If you want to get a better error message, you can define a hash
+in the validation config
+
+ [
+    {
+        "label" : "Name",
+        "type" : "text",
+        "validation" : {
+            "like" : { "args" : [ "es" ], "msg" : "text must contain 'es'" },
+            "size" : { "args" : [ 2, 5 ], "msg" : "length must be between 2 and 5 chars" }
+        },
+        "name" : "name"
+    }
+ ]
+
+Examples:
+
+  text   | error
+  -------+---------------------------------
+  test   |
+  t      | text must contain 'es'
+  tester | length must be between 2 and 5 chars
 
 =head1 SEE ALSO
 
