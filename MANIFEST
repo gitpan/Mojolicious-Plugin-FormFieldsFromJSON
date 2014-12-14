@@ -68,6 +68,8 @@ t/fields/34_checkbox_group_template.t
 t/fields/35_checkbox_group_one_config_template.t
 t/fields/36_radio_after_element.t
 t/fields/37_checkbox_after_element.t
+t/fields/38_radio_show_value.t
+t/fields/39_checkbox_show_value.t
 t/fields/conf/checkbox.json
 t/fields/conf/checkbox_after_element.json
 t/fields/conf/checkbox_group.json
@@ -78,6 +80,7 @@ t/fields/conf/checkbox_group_one_config_disabled_code.json
 t/fields/conf/checkbox_group_one_config_preselect.json
 t/fields/conf/checkbox_group_one_config_template.json
 t/fields/conf/checkbox_group_template.json
+t/fields/conf/checkbox_show_value.json
 t/fields/conf/hidden.json
 t/fields/conf/password.json
 t/fields/conf/radio.json
@@ -90,6 +93,7 @@ t/fields/conf/radio_group_one_config_disabled_code.json
 t/fields/conf/radio_group_one_config_preselect.json
 t/fields/conf/radio_group_one_config_template.json
 t/fields/conf/radio_group_template.json
+t/fields/conf/radio_show_value.json
 t/fields/conf/select.json
 t/fields/conf/select_disabled_value.json
 t/fields/conf/select_hash.json
