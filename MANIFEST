@@ -20,6 +20,7 @@ t/10_global_attributes.t
 t/11_global_attributes_plus_field_attributes.t
 t/12_global_attributes_multirequest.t
 t/13_alias.t
+t/14_translation.t
 t/basic.t
 t/conf/alias.json
 t/conf/fieldtype_template.json
@@ -30,6 +31,7 @@ t/conf/global_attributes_plus_field_attributes.json
 t/conf/template.json
 t/conf/template_configured_in_json.json
 t/conf/template_twofields.json
+t/conf/translation.json
 t/conf/two_fields.json
 t/fields/01_textfield.t
 t/fields/02_textfield_default.t
@@ -70,6 +72,8 @@ t/fields/36_radio_after_element.t
 t/fields/37_checkbox_after_element.t
 t/fields/38_radio_show_value.t
 t/fields/39_checkbox_show_value.t
+t/fields/40_radio_translate_sublabel.t
+t/fields/41_checkbox_translate_sublabel.t
 t/fields/conf/checkbox.json
 t/fields/conf/checkbox_after_element.json
 t/fields/conf/checkbox_group.json
@@ -81,6 +85,7 @@ t/fields/conf/checkbox_group_one_config_preselect.json
 t/fields/conf/checkbox_group_one_config_template.json
 t/fields/conf/checkbox_group_template.json
 t/fields/conf/checkbox_show_value.json
+t/fields/conf/checkbox_translate_sublabel.json
 t/fields/conf/hidden.json
 t/fields/conf/password.json
 t/fields/conf/radio.json
@@ -94,6 +99,7 @@ t/fields/conf/radio_group_one_config_preselect.json
 t/fields/conf/radio_group_one_config_template.json
 t/fields/conf/radio_group_template.json
 t/fields/conf/radio_show_value.json
+t/fields/conf/radio_translate_sublabel.json
 t/fields/conf/select.json
 t/fields/conf/select_disabled_value.json
 t/fields/conf/select_hash.json
