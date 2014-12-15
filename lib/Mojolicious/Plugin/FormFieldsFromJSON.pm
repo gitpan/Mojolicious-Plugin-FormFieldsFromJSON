@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.16';
+our $VERSION = '0.17';
 
 use Carp;
 use File::Basename;
@@ -15,8 +15,6 @@ use Mojo::Asset::File;
 use Mojo::Collection;
 use Mojo::ByteStream;
 use Mojo::JSON qw(decode_json);
-
-our %request;
 
 sub register {
     my ($self, $app, $config) = @_;
@@ -276,10 +274,10 @@ sub register {
 }
 
 sub _hidden {
-    my ($self, $c, $field) = @_;
+    my ($self, $c, $field, %params) = @_;
 
     my $name  = $field->{name} // $field->{label} // '';
-    my $value = $c->stash( $name ) // $request{$name} // $field->{data} // '';
+    my $value = $params{$name}->{data} // $c->stash( $name ) // $c->param( $name ) // $field->{data} // '';
     my $id    = $field->{id} // $name;
     my %attrs = %{ $field->{attributes} || {} };
 
@@ -287,10 +285,10 @@ sub _hidden {
 }
 
 sub _text {
-    my ($self, $c, $field) = @_;
+    my ($self, $c, $field, %params) = @_;
 
     my $name  = $field->{name} // $field->{label} // '';
-    my $value = $c->stash( $name ) // $request{$name} // $field->{data} // '';
+    my $value = $params{$name}->{data} // $c->stash( $name ) // $c->param( $name ) // $field->{data} // '';
     my $id    = $field->{id} // $name;
     my %attrs = %{ $field->{attributes} || {} };
 
@@ -325,6 +323,10 @@ sub _select {
         if ( keys %{ $hashref } ) {
             $select_params{$key} = $hashref;
         }
+    }
+
+    if ( $field_params->{data} ) {
+        $select_params{data} = $field_params->{data};
     }
 
     my @values = $self->_get_select_values( $c, $field, %select_params );
@@ -460,7 +462,7 @@ sub _radio {
     my $id    = $field->{id} // $name;
     my %attrs = %{ $field->{attributes} || {} };
 
-    my $data   = $params{data} // $field->{data} // [];
+    my $data   = $params{$name}->{data} // $field->{data} // [];
     my @values = ref $data ? @{ $data } : ($data);
 
     my $field_params = $params{$name} || {},
@@ -540,7 +542,7 @@ sub _checkbox {
     my $id    = $field->{id} // $name;
     my %attrs = %{ $field->{attributes} || {} };
 
-    my $data   = $params{data} // $field->{data} // [];
+    my $data   = $params{$name}->{data} // $field->{data} // [];
     my @values = ref $data ? @{ $data } : ($data);
 
     my $field_params = $params{$name} || {},
@@ -614,10 +616,10 @@ sub _checkbox {
 }
 
 sub _textarea {
-    my ($self, $c, $field) = @_;
+    my ($self, $c, $field, %params) = @_;
 
     my $name  = $field->{name} // $field->{label} // '';
-    my $value = $c->stash( $name ) // $request{$name} // $field->{data} // '';
+    my $value = $params{$name}->{data} // $c->stash( $name ) // $c->param( $name ) // $field->{data} // '';
     my $id    = $field->{id} // $name;
     my %attrs = %{ $field->{attributes} || {} };
 
@@ -625,10 +627,10 @@ sub _textarea {
 }
 
 sub _password {
-    my ($self, $c, $field) = @_;
+    my ($self, $c, $field, %params) = @_;
 
     my $name  = $field->{name} // $field->{label} // '';
-    my $value = $c->stash( $name ) // $request{$name} // $field->{data} // '';
+    my $value = $params{$name}->{data} // $c->stash( $name ) // $c->param( $name ) // $field->{data} // '';
     my $id    = $field->{id} // $name;
     my %attrs = %{ $field->{attributes} || {} };
 
@@ -649,7 +651,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.16
+version 0.17
 
 =head1 SYNOPSIS
 
