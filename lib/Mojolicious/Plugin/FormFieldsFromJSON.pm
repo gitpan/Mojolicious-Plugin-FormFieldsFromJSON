@@ -3,7 +3,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 
 # ABSTRACT: create form fields based on a definition in a JSON file
 
-our $VERSION = '0.17';
+our $VERSION = '0.18';
 
 use Carp;
 use File::Basename;
@@ -651,7 +651,7 @@ Mojolicious::Plugin::FormFieldsFromJSON - create form fields based on a definiti
 
 =head1 VERSION
 
-version 0.17
+version 0.18
 
 =head1 SYNOPSIS
 
@@ -900,6 +900,26 @@ Those fields have the following definition items in common:
 =item * type
 
 =item * data
+
+For I<text>, I<textarea>, I<password> and I<hidden> this is the value for the field. This can be set in various ways:
+
+=over 4
+
+=item 1. Data passed in the code like
+
+  $c->form_fields( 'form', fieldname => { data => 'test' } );
+
+=item 2. Data passed via stash
+
+  $c->stash( fieldname => 'test' );
+
+=item 3. Data in the request
+
+=item 4. Data defined in the field configuration
+
+=back
+
+For I<select>, I<checkbox> and I<radio> fields, I<data> contains the possible values.
 
 =item * attributes
 
@@ -1336,6 +1356,41 @@ Creates
   <input id="type" name="type" type="radio" value="internal" /> internal
   <input id="type" name="type" type="radio" value="external" /> external
 
+=head3 Radiobuttons with translated values for "sublabels"
+
+If you want to show the "sublabels" and want them to be translated, you can
+use I<translate_sublabels>
+
+ [
+    {
+        "label" : "Name",
+        "type" : "radio",
+        "name" : "type",
+        "show_value" : 1,
+        "translate_sublabels" : 1,
+        "data" : ["internal", "external" ]
+    }
+ ]
+
+Given this plugin is used this way:
+
+  plugin 'FormFieldsFromJSON' => {
+      dir => File::Spec->catdir( dirname( __FILE__ ) || '.', 'conf' ),
+      translation_method => \&loc,
+  };
+  
+  sub loc {
+      my ($c, $value) = @_;
+  
+      my %translation = ( internal => 'intern', external => 'extern' );
+      return $translation{$value} // $value;
+  };
+
+You'll get
+
+  <input id="type" name="type" type="radio" value="internal" /> intern
+  <input id="type" name="type" type="radio" value="external" /> extern
+
 =head2 checkbox
 
 For checkboxes, you can use two ways: You can either configure
@@ -1507,6 +1562,41 @@ Creates
 
   <input id="type" name="type" type="checkbox" value="internal" /> internal
   <input id="type" name="type" type="checkbox" value="external" /> external
+
+=head3 Checkboxes with translated values for "sublabels"
+
+If you want to show the "sublabels" and want them to be translated, you can
+use I<translate_sublabels>
+
+ [
+    {
+        "label" : "Name",
+        "type" : "checkbox",
+        "name" : "type",
+        "show_value" : 1,
+        "translate_sublabels" : 1,
+        "data" : ["internal", "external" ]
+    }
+ ]
+
+Given this plugin is used this way:
+
+  plugin 'FormFieldsFromJSON' => {
+      dir => File::Spec->catdir( dirname( __FILE__ ) || '.', 'conf' ),
+      translation_method => \&loc,
+  };
+  
+  sub loc {
+      my ($c, $value) = @_;
+  
+      my %translation = ( internal => 'intern', external => 'extern' );
+      return $translation{$value} // $value;
+  };
+
+You'll get
+
+  <input id="type" name="type" type="checkbox" value="internal" /> intern
+  <input id="type" name="type" type="checkbox" value="external" /> extern
 
 =head2 textarea
 
@@ -1862,7 +1952,8 @@ about i18n:
 
 =back
 
-You can combine these plugins with this plugin.
+You can combine these plugins with this plugin. An example is available at
+L<the code repository|http://github.com/reneeb/Mojolicious-Plugin-FormFieldsFromJSON/tree/master/example>.
 
 =head1 SEE ALSO
 

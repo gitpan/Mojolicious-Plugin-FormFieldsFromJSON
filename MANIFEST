@@ -7,6 +7,9 @@ META.yml
 Makefile.PL
 README
 dist.ini
+example/I18N/de.pm
+example/fields/price.json
+example/i18n.pl
 lib/Mojolicious/Plugin/FormFieldsFromJSON.pm
 t/02_two_fields.t
 t/03_template.t
