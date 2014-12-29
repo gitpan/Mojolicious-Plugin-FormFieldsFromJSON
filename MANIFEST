@@ -24,7 +24,9 @@ t/11_global_attributes_plus_field_attributes.t
 t/12_global_attributes_multirequest.t
 t/13_alias.t
 t/14_translation.t
+t/15_additional_type.t
 t/basic.t
+t/conf/additional_type.json
 t/conf/alias.json
 t/conf/fieldtype_template.json
 t/conf/fieldtype_template_select.json
@@ -133,6 +135,7 @@ t/fields/conf/textfield_with_attributes.json
 t/formsconf/template.json
 t/formsconf/template_configured_in_json.json
 t/formsconf/template_twofields.json
+t/lib/Mojolicious/Plugin/FormFieldsFromJSON/Test.pm
 t/validation/01_textfield.t
 t/validation/02_textfield_required.t
 t/validation/03_unset_optional.t
