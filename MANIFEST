@@ -145,6 +145,8 @@ t/validation/06_specific_error_message.t
 t/validation/07_mixed_errors.t
 t/validation/08_required_error_message.t
 t/validation/09_required_no_error_message.t
+t/validation/10_change_value.t
+t/validation/conf/change_value.json
 t/validation/conf/error_message.json
 t/validation/conf/mixed_errors.json
 t/validation/conf/required_error_message.json
